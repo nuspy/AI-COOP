@@ -10,9 +10,24 @@ con memoria di thread su entrambi i lati e criteri espliciti di terminazione.
 
 ## Canale verso Codex
 
-Il dibattito lo orchestra **il thread principale**, chiamando `codex exec` via Bash.
-Non delegarlo a un subagent e non usare `Skill(codex:rescue)` o `codex:codex-rescue`:
-passano dal companion, che lega il thread alla sessione Claude e lo perde alla chiusura.
+Il dibattito lo orchestra **il thread principale**. Non delegarlo a un subagent e non usare
+`Skill(codex:rescue)` o `codex:codex-rescue`: passano dal companion, che lega il thread alla
+sessione Claude e lo perde alla chiusura.
+
+### Primario — server MCP di Codex
+
+Se i tool del server `codex` sono disponibili (`mcp__codex__codex` e `mcp__codex__codex-reply`;
+cercali con ToolSearch se non compaiono), **preferiscili**: il processo resta vivo fra i round,
+senza riavvio del binario e degli hook a ogni scambio.
+
+- **Round 1** → tool `codex` con `{prompt, cwd: "<progetto>", sandbox: "read-only"}`.
+  Restituisce `{threadId, content}`: annota `threadId` nel file di stato del dibattito.
+- **Round successivi** → tool `codex-reply` con `{threadId, prompt}`.
+
+Non risparmia token — i modelli sono stateless e ogni round rimanda comunque lo storico —
+ma elimina secondi di overhead per scambio.
+
+### Fallback — `codex exec` via Bash
 
 **Round 1 — apri la sessione del dibattito:**
 

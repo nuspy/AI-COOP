@@ -27,9 +27,44 @@ C'è un secondo motivo. Il subagent è un forwarder che restituisce lo stdout di
 resta un intermediario: AI-COOP ha bisogno che l'output arrivi su file, non attraverso un
 modello che potrebbe riassumerlo.
 
-## Il canale: `codex exec`
+## Il canale, primario: server MCP
 
-AI-COOP parla direttamente con il CLI dal thread principale.
+`codex mcp-server` avvia Codex come server MCP su stdio. Espone due tool:
+
+| Tool | Input | Output |
+|---|---|---|
+| `codex` | `{prompt, cwd, sandbox, model, config, ...}` | `{threadId, content}` |
+| `codex-reply` | `{threadId, prompt}` | `{threadId, content}` |
+
+Stessa semantica di `exec` / `exec resume`, ma il processo resta vivo fra le chiamate e
+l'output arriva già strutturato — niente parsing di JSONL, e `content` è pronto per il
+journal verbatim.
+
+Configurazione (inclusa nel plugin, `plugins/ai-coop/.mcp.json`):
+
+```json
+{ "mcpServers": { "codex": { "command": "codex", "args": ["mcp-server"] } } }
+```
+
+### Cosa risparmia, e cosa no
+
+**Non risparmia token.** I modelli sono stateless: ogni turno reinvia l'intero storico come
+input, che il processo sia rimasto aperto o no. La "sessione viva" esiste nel processo Codex,
+non nel modello. `codex-reply` e `codex exec resume` mandano all'API gli stessi token.
+
+**Risparmia overhead di processo**: avvio del binario, caricamento config, autenticazione e
+hook. Nei test ogni invocazione CLI eseguiva `SessionStart`, `UserPromptSubmit` e `Stop`;
+con il server persistente `SessionStart` avviene una volta. Secondi per chiamata, che su un
+ciclo `/forge` lungo diventano minuti.
+
+Le leve reali sui token sono altrove: prompt caching lato OpenAI (automatico, ne beneficia
+anche il resume da CLI), compattazione della conversazione (parametro `compact-prompt`),
+e prompt più stretti.
+
+## Il canale, fallback: `codex exec`
+
+Quando il server MCP non è configurato, AI-COOP parla direttamente con il CLI dal thread
+principale.
 
 **Apertura della sessione** (una volta per progetto o per dibattito):
 

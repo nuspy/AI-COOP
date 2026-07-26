@@ -29,12 +29,33 @@ Lo scope aperto vale sui **task**, mai sui **criteri di accettazione**.
 - Priorità di lavorazione: i task che servono un criterio del charter vengono **sempre** prima
   delle estensioni. Un'estensione si lavora solo quando la milestone corrente è verde.
 
-## Canale verso Codex — `codex exec` diretto
+## Canale verso Codex
 
-Usa il CLI direttamente via Bash dal thread principale. **Non** usare il subagent
-`codex:codex-rescue` né `Skill(codex:rescue)`: passano dal companion, che aggancia il thread
-alla sessione Claude Code e lo perde alla chiusura. `codex exec` invece mantiene una sessione
-persistente su disco, riprendibile da qualsiasi processo.
+**Non** usare il subagent `codex:codex-rescue` né `Skill(codex:rescue)`: passano dal
+companion, che aggancia il thread alla sessione Claude Code e lo perde alla chiusura.
+
+### Primario — server MCP di Codex
+
+Se i tool del server `codex` sono disponibili (nomi tipici `mcp__codex__codex` e
+`mcp__codex__codex-reply`; cercali con ToolSearch se non compaiono), **preferiscili**.
+Il processo Codex resta vivo fra le chiamate, evitando avvio del binario, autenticazione e
+hook a ogni interazione: secondi per chiamata, minuti su un ciclo lungo.
+
+- **Apertura sessione** → tool `codex` con `{prompt, cwd: "<repo>", sandbox: "read-only"}`.
+  Restituisce `{threadId, content}`: salva `threadId` in `.forge/state.json` come `codexThreadId`.
+- **Interazioni successive** → tool `codex-reply` con `{threadId, prompt}`.
+
+L'output è già strutturato: nessun parsing di stdout, e `content` va nel journal verbatim.
+
+**Nota sui token.** Il server persistente non riduce il consumo: i modelli sono stateless e
+ogni turno reinvia comunque lo storico, esattamente come il resume da CLI. Risparmia tempo,
+non token. Sulle sessioni lunghe le leve reali sono il prompt caching (automatico) e la
+compattazione della conversazione.
+
+### Fallback — `codex exec` via Bash
+
+Se il server MCP non è configurato, usa il CLI dal thread principale. Stesso comportamento e
+stessa persistenza su disco, solo più lento per l'avvio ripetuto.
 
 **Creazione della sessione di progetto** — una sola volta, in Fase 0:
 

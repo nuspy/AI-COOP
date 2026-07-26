@@ -90,6 +90,46 @@ si eredita `~/.codex/config.toml`.
 
 ---
 
+## ✅ Il server MCP espone `codex` e `codex-reply`
+
+**Test.** Handshake JSON-RPC su stdio contro `codex mcp-server`.
+
+```bash
+printf '%s\n' \
+  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"probe","version":"1.0"}}}' \
+  '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+  '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' | codex mcp-server
+```
+
+**Esito.** `serverInfo: codex-mcp-server 0.145.0`, due tool:
+
+- `codex` — avvia una sessione. Accetta `prompt` (obbligatorio), `cwd`, `sandbox`
+  (`read-only` | `workspace-write` | `danger-full-access`), `model`, `approval-policy`,
+  `base-instructions`, `developer-instructions`, `compact-prompt`, `config`.
+  Output schema: `{threadId, content}`.
+- `codex-reply` — continua da `{threadId, prompt}`. Stesso output schema.
+
+Nota: `sandbox` è accettato solo da `codex`, non da `codex-reply` — stessa asimmetria del CLI.
+
+**⚠️ Non ancora verificato:** che una sessione aperta via MCP sia riprendibile da
+`codex exec resume` e viceversa. I due canali potrebbero condividere lo stesso store di
+sessioni o no. Da testare prima di mischiarli in uno stesso protocollo.
+
+---
+
+## ❌ Il server MCP non riduce il consumo di token
+
+Assunzione da smentire esplicitamente perché intuitiva e sbagliata: tenere il processo Codex
+aperto **non** evita il reinvio del contesto. I modelli sono stateless — ogni turno rimanda
+l'intero storico come input, che il processo sia vivo o no. La sessione persiste nel processo
+Codex, non nel modello.
+
+Il risparmio è di **overhead di processo**, non di token: negli output CLI si osserva
+`hook: SessionStart`, `hook: UserPromptSubmit`, `hook: Stop` a ogni singola invocazione,
+oltre ad avvio del binario e autenticazione.
+
+---
+
 ## ✅ Il companion lega il thread alla sessione Claude
 
 ```bash

@@ -114,6 +114,20 @@ il companion non offre. Vedi [docs/architecture.md](docs/architecture.md).
 Durante lo sviluppo dei protocolli conviene `-Link`, che crea junction verso il repo invece
 di copie: le modifiche diventano attive immediatamente.
 
+### Server MCP di Codex (consigliato)
+
+Il plugin dichiara il server in `plugins/ai-coop/.mcp.json`: installandolo da marketplace
+viene configurato da solo. Con l'installazione locale degli skill va aggiunto a mano:
+
+```bash
+claude mcp add codex -- codex mcp-server
+```
+
+I protocolli funzionano anche senza — ricadono su `codex exec` — ma con il server il processo
+Codex resta vivo fra le chiamate, risparmiando avvio del binario e hook a ogni scambio.
+**Non riduce il consumo di token**: i modelli sono stateless e ogni turno reinvia comunque lo
+storico. Risparmia tempo, non token.
+
 ## Uso
 
 Lancia sempre dalla directory del progetto: Codex ragiona sulla working directory.
