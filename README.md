@@ -128,6 +128,11 @@ Codex resta vivo fra le chiamate, risparmiando avvio del binario e hook a ogni s
 **Non riduce il consumo di token**: i modelli sono stateless e ogni turno reinvia comunque lo
 storico. Risparmia tempo, non token.
 
+Le sessioni MCP vivono solo nel processo server: alla chiusura di Claude Code un thread non è
+più raggiungibile via `codex-reply`, ma **non è perso** — resta su disco e i protocolli
+ricadono automaticamente su `codex exec resume`. Dettagli in
+[docs/verified-behaviors.md](docs/verified-behaviors.md).
+
 ## Uso
 
 Lancia sempre dalla directory del progetto: Codex ragiona sulla working directory.

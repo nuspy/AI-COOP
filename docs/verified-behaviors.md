@@ -111,9 +111,50 @@ printf '%s\n' \
 
 Nota: `sandbox` è accettato solo da `codex`, non da `codex-reply` — stessa asimmetria del CLI.
 
-**⚠️ Non ancora verificato:** che una sessione aperta via MCP sia riprendibile da
-`codex exec resume` e viceversa. I due canali potrebbero condividere lo stesso store di
-sessioni o no. Da testare prima di mischiarli in uno stesso protocollo.
+Attenzione nel sondare il server a mano: chiudendo stdin subito dopo il `tools/call`, il
+processo termina prima di completare il turno. Serve un client che tenga la connessione
+aperta fino alla risposta.
+
+---
+
+## ⚠️ Le sessioni MCP vivono in memoria — l'interoperabilità è asimmetrica
+
+Il risultato più importante per il design dei protocolli. Tre test:
+
+| Direzione | Esito |
+|---|---|
+| Server MCP nuovo → thread creato da un **precedente** server MCP | ❌ `Session not found` |
+| Server MCP → thread creato da `codex exec` | ❌ `Session not found` |
+| `codex exec resume` → thread creato via MCP | ✅ risponde correttamente |
+
+**Test.** Sessione aperta via MCP (`019f9c1c-b73b-7283-8bd0-b62f45bd36a8`, token `BETA-77`),
+poi interrogata da un processo server nuovo e, separatamente, dal CLI.
+
+```
+node mcp-probe.mjs reply 019f9c1c-... "Quale token?"
+→ {"isError": true, "content": "Session not found for thread_id: 019f9c1c-..."}
+
+codex exec resume 019f9c1c-... "Quale token?"
+→ BETA-77
+```
+
+**Interpretazione.** Le sessioni *sono* persistite su disco — il CLI le legge tutte,
+comprese quelle aperte via MCP. Ma il server MCP mantiene una mappa **solo in memoria** dei
+thread creati nel proprio processo, e non ricarica da disco: `codex-reply` funziona
+esclusivamente entro la vita di quel processo.
+
+**Conseguenza per i protocolli.** Strategia ibrida con fallback:
+
+- Dentro una sessione Claude Code il server MCP resta vivo, quindi `codex-reply` è valido
+  e conviene per la latenza.
+- Alla chiusura di Claude Code il server muore e il `threadId` diventa irraggiungibile
+  via MCP — ma **non è perso**: `codex exec resume <threadId>` lo recupera.
+- Quando `codex-reply` risponde `Session not found`, ricadere su `codex exec resume` e
+  proseguire su quel canale per il resto del thread. Non c'è modo di far riadottare al
+  server MCP un thread che non ha creato.
+
+Per `/forge`, che dura giorni, questo significa che il CLI resta la garanzia di continuità;
+l'MCP è l'acceleratore per la singola sessione.
 
 ---
 

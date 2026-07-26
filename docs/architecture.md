@@ -46,6 +46,27 @@ Configurazione (inclusa nel plugin, `plugins/ai-coop/.mcp.json`):
 { "mcpServers": { "codex": { "command": "codex", "args": ["mcp-server"] } } }
 ```
 
+### Le sessioni MCP vivono in memoria
+
+Vincolo verificato che determina la strategia: il server MCP mantiene i thread creati
+**solo nel proprio processo**. Un server nuovo non ritrova le sessioni di quello precedente,
+né quelle aperte da `codex exec`.
+
+Le sessioni però *sono* su disco, e il CLI le legge tutte — comprese quelle nate via MCP.
+L'interoperabilità è quindi a senso unico: **CLI → MCP no, MCP → CLI sì**.
+
+Ne segue una strategia ibrida:
+
+| Situazione | Canale |
+|---|---|
+| Interazioni entro la stessa sessione Claude Code | `codex-reply` (MCP) |
+| Prima interazione dopo un riavvio | `codex exec resume <threadId>` |
+| `codex-reply` risponde `Session not found` | ricadi su CLI e resta lì per quel thread |
+
+Il `threadId` non si perde mai: cambia solo il canale con cui lo si raggiunge. Per `/forge`,
+che dura giorni, il CLI resta la garanzia di continuità e l'MCP è l'acceleratore della
+singola sessione.
+
 ### Cosa risparmia, e cosa no
 
 **Non risparmia token.** I modelli sono stateless: ogni turno reinvia l'intero storico come

@@ -27,6 +27,12 @@ senza riavvio del binario e degli hook a ogni scambio.
 Non risparmia token — i modelli sono stateless e ogni round rimanda comunque lo storico —
 ma elimina secondi di overhead per scambio.
 
+**Fallback obbligatorio.** Le sessioni MCP vivono solo in memoria nel processo server: se il
+dibattito riprende in una sessione Claude successiva, `codex-reply` risponde
+`Session not found`. Il thread non è perso — ricadi su
+`codex exec resume <threadId> "<prompt>"` e prosegui da CLI per il resto del dibattito.
+Un thread non creato dal server MCP corrente non è più raggiungibile via MCP: non riprovare.
+
 ### Fallback — `codex exec` via Bash
 
 **Round 1 — apri la sessione del dibattito:**

@@ -47,6 +47,19 @@ hook a ogni interazione: secondi per chiamata, minuti su un ciclo lungo.
 
 L'output è già strutturato: nessun parsing di stdout, e `content` va nel journal verbatim.
 
+**Regola di fallback — obbligatoria.** Le sessioni MCP vivono **solo in memoria** nel processo
+server: alla chiusura di Claude Code il server muore e `codex-reply` risponde
+`Session not found`. Il thread **non è perso** — è su disco e il CLI lo legge:
+
+1. Se `codex-reply` fallisce con `Session not found`, ricadi su
+   `codex exec resume <codexThreadId> "<prompt>"` e **prosegui su CLI per il resto del thread**.
+2. Non c'è modo di far riadottare al server MCP un thread che non ha creato: non riprovare.
+3. In pratica: prima interazione di ogni sessione Claude → CLI; se apri un thread nuovo con
+   il tool `codex`, le interazioni seguenti di quella sessione possono usare `codex-reply`.
+
+Poiché `/forge` dura giorni, **il CLI è la garanzia di continuità** e l'MCP è l'acceleratore
+della singola sessione.
+
 **Nota sui token.** Il server persistente non riduce il consumo: i modelli sono stateless e
 ogni turno reinvia comunque lo storico, esattamente come il resume da CLI. Risparmia tempo,
 non token. Sulle sessioni lunghe le leve reali sono il prompt caching (automatico) e la
