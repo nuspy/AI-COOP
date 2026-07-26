@@ -1,0 +1,13 @@
+# Artefatti generati dai protocolli
+.forge/
+debate-*.md
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp

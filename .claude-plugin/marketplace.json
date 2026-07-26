@@ -1,0 +1,21 @@
+{
+  "name": "ai-coop",
+  "owner": {
+    "name": "atain"
+  },
+  "metadata": {
+    "description": "Protocolli di cooperazione avversariale fra Claude e Codex: dibattito fino a consenso e sviluppo end-to-end a due modelli.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "ai-coop",
+      "description": "Due modelli che si confrontano invece di obbedire: /debate per una decisione, /forge per costruire un prodotto intero.",
+      "version": "0.1.0",
+      "author": {
+        "name": "atain"
+      },
+      "source": "./plugins/ai-coop"
+    }
+  ]
+}

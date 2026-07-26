@@ -1,0 +1,8 @@
+{
+  "name": "ai-coop",
+  "version": "0.1.0",
+  "description": "Cooperazione avversariale Claude ↔ Codex: /debate porta due modelli al consenso su una decisione, /forge li fa costruire un prodotto end-to-end.",
+  "author": {
+    "name": "atain"
+  }
+}
